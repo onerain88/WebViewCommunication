@@ -1,0 +1,95 @@
+<body>
+  <button type="button" onclick="onCallbackClicked()">Click to callback</button>
+  <button id="platformButton" type="button" onclick="onGetPlatformClicked()">
+    Get platform
+  </button>
+  <text id="log">nothing</text>
+
+  <script>
+    function getValue() {
+      return 123;
+    }
+
+    function onCallbackClicked() {
+      notify("clickButton", "Click to callback");
+    }
+
+    function onGetPlatformClicked() {
+      call("getPlatform", null, (platform) => {
+        document.getElementById("platformButton").textContent = platform;
+      });
+    }
+
+    let reqId = 0;
+    const requests = {};
+
+    function call(method, data, callback) {
+      const message = {
+        method,
+        requestId: ++reqId,
+      };
+      if (data) {
+        message.data = data;
+      }
+      requests[message.requestId] = callback;
+      invoke(message);
+    }
+
+    function notify(method, data) {
+      const message = {
+        method,
+      };
+      if (data) {
+        message.data = data;
+      }
+      invoke(message);
+    }
+
+    function invoke(message) {
+      window.tapBillboardJS2Native(JSON.stringify(message));
+    }
+
+    function handleNotification(message) {
+      if (message.method === "submit") {
+        document.getElementById("log").textContent = "submit";
+      }
+    }
+
+    function handleRequest(message) {
+      const result = {};
+      if (message.method === "getValue") {
+        result.responseId = message.requestId;
+        result.data = getValue();
+        invoke(result);
+      } else {
+        // 其他处理
+      }
+    }
+
+    function handleResponse(message) {
+      if (requests[message.responseId]) {
+        requests[message.responseId](message.data);
+      }
+    }
+
+    window.tapBillboardNative2JS = function (json) {
+      const message = JSON.parse(json);
+      if (!message.requestId && !message.responseId) {
+        // 通知
+        handleNotification(message);
+      } else if (message.requestId) {
+        // 请求
+        handleRequest(message);
+      } else if (message.responseId) {
+        // 应答
+        handleResponse(message);
+      } else {
+        // 异常消息
+      }
+    };
+
+    // window.tapBillboardJS2Native = function (message) {
+    //   // 空实现，等 Native 注入
+    // };
+  </script>
+</body>
