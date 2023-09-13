@@ -3,17 +3,17 @@ using UnityEngine;
 using Vuplex.WebView;
 
 public class Sample : MonoBehaviour {
-    private static readonly string TAP_BILLBOARD_NATIVE_2_JS = "tapBillboardNative2JS";
-    private static readonly string TAP_BILLBOARD_JS_2_NATIVE = "tapBillboardJS2Native";
+    private static readonly string TAP_BILLBOARD = "tapBillboard";
 
     public CanvasWebViewPrefab canvasWebViewPrefab;
 
     private NativeJSBridge bridge;
 
     async void Start() {
+        canvasWebViewPrefab.RemoteDebuggingEnabled = true;
         await canvasWebViewPrefab.WaitUntilInitialized();
 
-        bridge = new NativeJSBridge(canvasWebViewPrefab.WebView, TAP_BILLBOARD_NATIVE_2_JS, TAP_BILLBOARD_JS_2_NATIVE);
+        bridge = new NativeJSBridge(canvasWebViewPrefab.WebView, TAP_BILLBOARD);
         
         // 通知
         bridge.Define("clickButton", data => {

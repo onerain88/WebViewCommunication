@@ -37,7 +37,7 @@
 
     function invoke(message) {
       // 这个方法由 Native 注入
-      window.tapBillboardJS2Native(JSON.stringify(message));
+      window.tapBillboard.postMessage(JSON.stringify(message));
     }
 
     function handleRequest(message) {
@@ -58,17 +58,19 @@
       }
     }
 
-    window.tapBillboardNative2JS = function (json) {
-      const message = JSON.parse(json);
-      if (message.requestId) {
-        // 请求
-        handleRequest(message);
-      } else if (message.responseId) {
-        // 应答
-        handleResponse(message);
-      } else {
-        // 异常消息
-      }
+    window.tapBillboard = {
+      onMessage: function (json) {
+        const message = JSON.parse(json);
+        if (message.requestId) {
+          // 请求
+          handleRequest(message);
+        } else if (message.responseId) {
+          // 应答
+          handleResponse(message);
+        } else {
+          // 异常消息
+        }
+      },
     };
 
     // window.tapBillboardJS2Native = function (message) {

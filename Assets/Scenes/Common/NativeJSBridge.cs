@@ -7,6 +7,9 @@ using Newtonsoft.Json;
 using TMPro;
 
 public class NativeJSBridge {
+    private readonly static string POST_MESSAGE_FUNC = "postMessage";
+    private readonly static string ON_MESSAGE_FUNC = "onMessage";
+
     private readonly string native2JSFunc;
     private readonly IWebView webView;
 
@@ -16,9 +19,8 @@ public class NativeJSBridge {
 
     private int requestId;
 
-    public NativeJSBridge(IWebView webView, string native2JSFunc, string js2NativeFunc) {
+    public NativeJSBridge(IWebView webView, string name) {
         this.webView = webView;
-        this.native2JSFunc = native2JSFunc;
 
         defines = new Dictionary<string, Func<object, Task<object>>>();
 
@@ -28,8 +30,14 @@ public class NativeJSBridge {
 
         webView.MessageEmitted += MessageEmitted;
 
-        webView.ExecuteJavaScript($@"window.{js2NativeFunc} = function(message) {{ 
-            window.vuplex.postMessage(message); 
+        webView.ExecuteJavaScript($@"
+        if (!window.{name}.{POST_MESSAGE_FUNC}) {{
+            window.vuplex.addEventListener('message', function (event) {{
+                window.{name}.{ON_MESSAGE_FUNC}(event.data)
+            }});
+            window.{name}.{POST_MESSAGE_FUNC} = function(message) {{ 
+                window.vuplex.postMessage(message); 
+            }}
         }}");
     }
 
@@ -70,24 +78,23 @@ public class NativeJSBridge {
         defines.Add(method, callback);
     }
 
-    public async Task<object> Call(string method, object data = null) {
+    public Task<object> Call(string method, object data = null) {
         NativeJSMessage call = NativeJSMessage.NewCall(++requestId, method, data);
 
         TaskCompletionSource<object> tcs = new TaskCompletionSource<object>();
         requestTasks.Add((int)call.RequestId, tcs);
-        await Invoke(call);
+        Invoke(call);
 
-        return await tcs.Task;
+        return tcs.Task;
     }
 
-    private Task Invoke(NativeJSMessage message) {
+    private void Invoke(NativeJSMessage message) {
         JsonSerializerSettings settings = new JsonSerializerSettings {
             NullValueHandling = NullValueHandling.Ignore
         };
         string json = JsonConvert.SerializeObject(message, settings);
         Debug.Log($"=> {json}");
-        string callString = $"window.{native2JSFunc}('{json}')";
-        return webView.ExecuteJavaScript(callString);
+        webView.PostMessage(json);
     }
 
     private async void MessageEmitted(object sender, EventArgs<string> args) {
@@ -106,7 +113,7 @@ public class NativeJSBridge {
             Debug.Log("Request");
             if (defines.TryGetValue(message.Method, out Func<object, Task<object>> func)) {
                 object result = await func(message.Data);
-                await Invoke(NativeJSMessage.NewResponse((int)message.RequestId, result));
+                Invoke(NativeJSMessage.NewResponse((int)message.RequestId, result));
             }
         } else {
             Debug.Log($"Invalid message: {args.Value}");
