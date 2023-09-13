@@ -80,11 +80,6 @@ public class NativeJSBridge {
         return await tcs.Task;
     }
 
-    public Task Notify(string method, object data = null) {
-        NativeJSMessage notification = NativeJSMessage.NewNotification(method, data);
-        return Invoke(notification);
-    }
-
     private Task Invoke(NativeJSMessage message) {
         JsonSerializerSettings settings = new JsonSerializerSettings {
             NullValueHandling = NullValueHandling.Ignore
@@ -98,13 +93,7 @@ public class NativeJSBridge {
     private async void MessageEmitted(object sender, EventArgs<string> args) {
         Debug.Log($"<= {args.Value}");
         NativeJSMessage message = JsonConvert.DeserializeObject<NativeJSMessage>(args.Value);
-        if (message.IsNotification) {
-            // 通知
-            Debug.Log("Notification");
-            if (defines.TryGetValue(message.Method, out Func<object, Task<object>> func)) {
-                await func(message.Data);
-            }
-        } else if (message.IsResponse) {
+        if (message.IsResponse) {
             // 应答
             Debug.Log("Response");
             if (requestTasks.TryGetValue((int)message.ResponseId, out TaskCompletionSource<object> tcs)) {

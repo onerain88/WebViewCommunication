@@ -11,7 +11,7 @@
     }
 
     function onCallbackClicked() {
-      notify("clickButton", "Click to callback");
+      call("clickButton", "Click to callback");
     }
 
     function onGetPlatformClicked() {
@@ -35,35 +35,21 @@
       invoke(message);
     }
 
-    function notify(method, data) {
-      const message = {
-        method,
-      };
-      if (data) {
-        message.data = data;
-      }
-      invoke(message);
-    }
-
     function invoke(message) {
+      // 这个方法由 Native 注入
       window.tapBillboardJS2Native(JSON.stringify(message));
     }
 
-    function handleNotification(message) {
-      if (message.method === "submit") {
+    function handleRequest(message) {
+      const result = {
+        responseId: message.requestId,
+      };
+      if (message.method === "getValue") {
+        result.data = getValue();
+      } else if (message.method === "submit") {
         document.getElementById("log").textContent = "submit";
       }
-    }
-
-    function handleRequest(message) {
-      const result = {};
-      if (message.method === "getValue") {
-        result.responseId = message.requestId;
-        result.data = getValue();
-        invoke(result);
-      } else {
-        // 其他处理
-      }
+      invoke(result);
     }
 
     function handleResponse(message) {
@@ -74,10 +60,7 @@
 
     window.tapBillboardNative2JS = function (json) {
       const message = JSON.parse(json);
-      if (!message.requestId && !message.responseId) {
-        // 通知
-        handleNotification(message);
-      } else if (message.requestId) {
+      if (message.requestId) {
         // 请求
         handleRequest(message);
       } else if (message.responseId) {

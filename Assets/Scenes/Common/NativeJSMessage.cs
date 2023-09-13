@@ -43,16 +43,6 @@ public class NativeJSMessage {
         return message;
     }
 
-    public static NativeJSMessage NewNotification(string method, object data = null) {
-        NativeJSMessage message = new NativeJSMessage {
-            Method = method,
-        };
-        if (data != null) {
-            message.Data = data;
-        }
-        return message;
-    }
-
     /// <summary>
     /// 创建响应消息
     /// </summary>
@@ -69,11 +59,6 @@ public class NativeJSMessage {
         return message;
     }
 
-    /// <summary>
-    /// 是否是通知
-    /// </summary>
-    [JsonIgnore]
-    public bool IsNotification => RequestId == null && ResponseId == null;
     /// <summary>
     /// 是否是请求
     /// </summary>

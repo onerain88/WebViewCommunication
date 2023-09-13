@@ -28,6 +28,6 @@ public class Sample : MonoBehaviour {
     }
 
     public void OnSubmitButtonClicked() {
-        bridge.Notify("submit");
+        _ = bridge.Call("submit");
     }
 }
