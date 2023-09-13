@@ -10,7 +10,6 @@ public class NativeJSBridge {
     private readonly static string POST_MESSAGE_FUNC = "postMessage";
     private readonly static string ON_MESSAGE_FUNC = "onMessage";
 
-    private readonly string native2JSFunc;
     private readonly IWebView webView;
 
     private readonly Dictionary<string, Func<object, Task<object>>> defines;
@@ -31,14 +30,14 @@ public class NativeJSBridge {
         webView.MessageEmitted += MessageEmitted;
 
         webView.ExecuteJavaScript($@"
-        if (!window.{name}.{POST_MESSAGE_FUNC}) {{
-            window.vuplex.addEventListener('message', function (event) {{
-                window.{name}.{ON_MESSAGE_FUNC}(event.data)
-            }});
-            window.{name}.{POST_MESSAGE_FUNC} = function(message) {{ 
-                window.vuplex.postMessage(message); 
-            }}
-        }}");
+            if (!window.{name}.{POST_MESSAGE_FUNC}) {{
+                window.vuplex.addEventListener('message', function (event) {{
+                    window.{name}.{ON_MESSAGE_FUNC}(event.data)
+                }});
+                window.{name}.{POST_MESSAGE_FUNC} = function(message) {{ 
+                    window.vuplex.postMessage(message); 
+                }}
+            }}");
     }
 
     public void Define(string method, Action action) {
@@ -97,26 +96,34 @@ public class NativeJSBridge {
         webView.PostMessage(json);
     }
 
-    private async void MessageEmitted(object sender, EventArgs<string> args) {
+    private void MessageEmitted(object sender, EventArgs<string> args) {
         Debug.Log($"<= {args.Value}");
         NativeJSMessage message = JsonConvert.DeserializeObject<NativeJSMessage>(args.Value);
         if (message.IsResponse) {
             // 应答
             Debug.Log("Response");
-            if (requestTasks.TryGetValue((int)message.ResponseId, out TaskCompletionSource<object> tcs)) {
-                tcs.TrySetResult(message.Data);
-            } else {
-                Debug.LogError($"Miss response: {message.ResponseId}");
-            }
+            HandleResponse(message);
         } else if (message.IsRequest) {
             // 请求
             Debug.Log("Request");
-            if (defines.TryGetValue(message.Method, out Func<object, Task<object>> func)) {
-                object result = await func(message.Data);
-                Invoke(NativeJSMessage.NewResponse((int)message.RequestId, result));
-            }
+            HandleRequest(message);
         } else {
             Debug.Log($"Invalid message: {args.Value}");
+        }
+    }
+
+    private async void HandleRequest(NativeJSMessage message) {
+        if (defines.TryGetValue(message.Method, out Func<object, Task<object>> func)) {
+            object result = await func(message.Data);
+            Invoke(NativeJSMessage.NewResponse((int)message.RequestId, result));
+        }
+    }
+
+    private void HandleResponse(NativeJSMessage message) {
+        if (requestTasks.TryGetValue((int)message.ResponseId, out TaskCompletionSource<object> tcs)) {
+            tcs.TrySetResult(message.Data);
+        } else {
+            Debug.LogError($"Miss response: {message.ResponseId}");
         }
     }
 }
