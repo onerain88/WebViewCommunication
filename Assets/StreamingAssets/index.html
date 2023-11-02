@@ -6,7 +6,7 @@
   <text id="log">nothing</text>
 
   <script>
-    function getValue() {
+    function getRedDotsCount() {
       return 123;
     }
 
@@ -37,17 +37,17 @@
 
     function invoke(message) {
       // 这个方法由 Native 注入
-      window.tapBillboard.postMessage(JSON.stringify(message));
+      window.tapBridge.postMessage(JSON.stringify(message));
     }
 
     function handleRequest(message) {
       const result = {
         responseId: message.requestId,
       };
-      if (message.method === "getValue") {
-        result.data = getValue();
+      if (message.method === "getRedDotsCount") {
+        result.data = getRedDotsCount();
       } else if (message.method === "submit") {
-        document.getElementById("log").textContent = "submit";
+        document.getElementById("log").textContent = "Native clicked submit!";
       }
       invoke(result);
     }
@@ -58,23 +58,21 @@
       }
     }
 
-    window.tapBillboard = {
-      onMessage: function (json) {
-        const message = JSON.parse(json);
-        if (message.requestId) {
-          // 请求
-          handleRequest(message);
-        } else if (message.responseId) {
-          // 应答
-          handleResponse(message);
-        } else {
-          // 异常消息
-        }
-      },
+    // 建立与 Native 的通信机制
+    if (!window.tapBridge) {
+      window.tapBridge = {};
+    }
+    window.tapBridge.onMessage = function (json) {
+      const message = JSON.parse(json);
+      if (message.requestId) {
+        // 请求
+        handleRequest(message);
+      } else if (message.responseId) {
+        // 应答
+        handleResponse(message);
+      } else {
+        // 异常消息
+      }
     };
-
-    // window.tapBillboardJS2Native = function (message) {
-    //   // 空实现，等 Native 注入
-    // };
   </script>
 </body>

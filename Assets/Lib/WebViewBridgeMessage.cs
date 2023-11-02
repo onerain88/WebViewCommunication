@@ -1,7 +1,7 @@
 ﻿using System;
 using Newtonsoft.Json;
 
-public class NativeJSMessage {
+public class WebViewBridgeMessage {
     /// <summary>
     /// 调用方法名
     /// </summary>
@@ -32,8 +32,8 @@ public class NativeJSMessage {
     /// <param name="method"></param>
     /// <param name="data"></param>
     /// <returns></returns>
-    public static NativeJSMessage NewCall(int reqId, string method, object data = null) {
-        NativeJSMessage message = new NativeJSMessage {
+    public static WebViewBridgeMessage NewCall(int reqId, string method, object data = null) {
+        WebViewBridgeMessage message = new WebViewBridgeMessage {
             RequestId = reqId,
             Method = method,
         };
@@ -49,8 +49,8 @@ public class NativeJSMessage {
     /// <param name="reqId"></param>
     /// <param name="data"></param>
     /// <returns></returns>
-    public static NativeJSMessage NewResponse(int reqId, object data = null) {
-        NativeJSMessage message = new NativeJSMessage {
+    public static WebViewBridgeMessage NewResponse(int reqId, object data = null) {
+        WebViewBridgeMessage message = new WebViewBridgeMessage {
             ResponseId = reqId,
         };
         if (data != null) {

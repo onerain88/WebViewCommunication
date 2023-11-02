@@ -7,27 +7,23 @@ public class Sample : MonoBehaviour {
 
     public CanvasWebViewPrefab canvasWebViewPrefab;
 
-    private NativeJSBridge bridge;
+    private WebViewBridge bridge;
+    private CommonBridgeHandler commonBridgeHandler;
+    private BillboardBridgeHandler billboardBridgeHandler;
 
     async void Start() {
         canvasWebViewPrefab.RemoteDebuggingEnabled = true;
         await canvasWebViewPrefab.WaitUntilInitialized();
 
-        bridge = new NativeJSBridge(canvasWebViewPrefab.WebView, TAP_BILLBOARD);
-        
-        // 通知
-        bridge.Define("clickButton", data => {
-            Debug.Log(data);
-        });
-        // JS 请求
-        bridge.Define("getPlatform", () => SystemInfo.operatingSystem);
+        bridge = new WebViewBridge(canvasWebViewPrefab.WebView);
+        commonBridgeHandler = new CommonBridgeHandler(bridge);
+        billboardBridgeHandler = new BillboardBridgeHandler(bridge);
 
-        // 直接调用，且有返回值
-        int result = Convert.ToInt32(await bridge.Call("getValue"));
-        Debug.Log($"result: {result}");
+        int result = await billboardBridgeHandler.GetRedDotsCount();
+        Debug.Log($"The count of red dots: {result}");
     }
 
     public void OnSubmitButtonClicked() {
-        _ = bridge.Call("submit");
+        billboardBridgeHandler.Submit();
     }
 }

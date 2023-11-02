@@ -6,7 +6,7 @@ using Vuplex.WebView;
 using Newtonsoft.Json;
 using TMPro;
 
-public class NativeJSBridge {
+public class WebViewBridge {
     private readonly static string POST_MESSAGE_FUNC = "postMessage";
     private readonly static string ON_MESSAGE_FUNC = "onMessage";
 
@@ -18,7 +18,7 @@ public class NativeJSBridge {
 
     private int requestId;
 
-    public NativeJSBridge(IWebView webView, string name) {
+    public WebViewBridge(IWebView webView) {
         this.webView = webView;
 
         defines = new Dictionary<string, Func<object, Task<object>>>();
@@ -30,11 +30,14 @@ public class NativeJSBridge {
         webView.MessageEmitted += MessageEmitted;
 
         webView.ExecuteJavaScript($@"
-            if (!window.{name}.{POST_MESSAGE_FUNC}) {{
+            if (!window.tapBridge) {{
+                window.tapBridge = {{}};
+            }}
+            if (!window.tapBridge.{POST_MESSAGE_FUNC}) {{
                 window.vuplex.addEventListener('message', function (event) {{
-                    window.{name}.{ON_MESSAGE_FUNC}(event.data)
+                    window.tapBridge.{ON_MESSAGE_FUNC}(event.data)
                 }});
-                window.{name}.{POST_MESSAGE_FUNC} = function(message) {{ 
+                window.tapBridge.{POST_MESSAGE_FUNC} = function(message) {{ 
                     window.vuplex.postMessage(message); 
                 }}
             }}");
@@ -78,7 +81,7 @@ public class NativeJSBridge {
     }
 
     public Task<object> Call(string method, object data = null) {
-        NativeJSMessage call = NativeJSMessage.NewCall(++requestId, method, data);
+        WebViewBridgeMessage call = WebViewBridgeMessage.NewCall(++requestId, method, data);
 
         TaskCompletionSource<object> tcs = new TaskCompletionSource<object>();
         requestTasks.Add((int)call.RequestId, tcs);
@@ -87,7 +90,7 @@ public class NativeJSBridge {
         return tcs.Task;
     }
 
-    private void Invoke(NativeJSMessage message) {
+    private void Invoke(WebViewBridgeMessage message) {
         JsonSerializerSettings settings = new JsonSerializerSettings {
             NullValueHandling = NullValueHandling.Ignore
         };
@@ -98,7 +101,7 @@ public class NativeJSBridge {
 
     private void MessageEmitted(object sender, EventArgs<string> args) {
         Debug.Log($"<= {args.Value}");
-        NativeJSMessage message = JsonConvert.DeserializeObject<NativeJSMessage>(args.Value);
+        WebViewBridgeMessage message = JsonConvert.DeserializeObject<WebViewBridgeMessage>(args.Value);
         if (message.IsResponse) {
             // 应答
             Debug.Log("Response");
@@ -112,14 +115,14 @@ public class NativeJSBridge {
         }
     }
 
-    private async void HandleRequest(NativeJSMessage message) {
+    private async void HandleRequest(WebViewBridgeMessage message) {
         if (defines.TryGetValue(message.Method, out Func<object, Task<object>> func)) {
             object result = await func(message.Data);
-            Invoke(NativeJSMessage.NewResponse((int)message.RequestId, result));
+            Invoke(WebViewBridgeMessage.NewResponse((int)message.RequestId, result));
         }
     }
 
-    private void HandleResponse(NativeJSMessage message) {
+    private void HandleResponse(WebViewBridgeMessage message) {
         if (requestTasks.TryGetValue((int)message.ResponseId, out TaskCompletionSource<object> tcs)) {
             tcs.TrySetResult(message.Data);
         } else {
