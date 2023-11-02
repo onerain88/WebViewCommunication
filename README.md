@@ -29,7 +29,7 @@
 
 （以下示例代码是基于 Unity PC 的 Vuplex WebView 插件实现的，不同平台的方式略有差别）
 
-![Native&JS-第 1 页.png](https://prod-files-secure.s3.us-west-2.amazonaws.com/a0cda0a8-945f-4f1f-81a7-7124ea00df91/40a43c76-468f-4099-a0f5-4b9cc0b8281c/NativeJS-%E7%AC%AC_1_%E9%A1%B5.png)
+![Native&JS.png](./Native&JS.png)
 
 ### Native 与 JS 分别提供对外接口
 
